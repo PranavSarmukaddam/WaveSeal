@@ -339,6 +339,7 @@ sample_dict = generate_sample_audio_files()
 if "target_path" not in st.session_state:
     st.session_state.target_path = None
     st.session_state.display_name = None
+    st.session_state.uploader_key = 0
 
 def _load_sample(key, label):
     st.session_state.target_path = sample_dict[key]
@@ -357,6 +358,7 @@ with col_left:
             "WAV, MP3, M4A, FLAC, OGG",
             type=["wav", "mp3", "m4a", "flac", "ogg"],
             label_visibility="collapsed",
+            key=f"uploader_{st.session_state.uploader_key}",
         )
         if uploaded is not None:
             tmp = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded.name)[1])
@@ -416,13 +418,43 @@ with col_right:
         path = st.session_state.target_path
         fname = st.session_state.display_name
 
-        with st.spinner("Executing forensic audit..."):
-            hashes = compute_file_hashes(path)
-            metadata = extract_metadata(path)
-            metadata["filename"] = fname
-            y, sr = load_audio_signal(path)
-            health = compute_audio_health_metrics(y, sr)
-            audit = run_full_forensic_audit(y, sr, metadata, sensitivity=3.5)
+        try:
+            with st.spinner("Executing forensic audit..."):
+                hashes = compute_file_hashes(path)
+                metadata = extract_metadata(path)
+                metadata["filename"] = fname
+                y, sr = load_audio_signal(path)
+                health = compute_audio_health_metrics(y, sr)
+                audit = run_full_forensic_audit(y, sr, metadata, sensitivity=3.5)
+        except ValueError as _ve:
+            st.markdown(f"""
+            <div class="vbox vbox-red">
+                <div class="vbox-tag" style="color:#991b1b;">Audio Decode Error</div>
+                <div class="vbox-head" style="color:#991b1b;">Unable to Read Audio File</div>
+                <div class="vbox-text">
+                    <b>{fname}</b> could not be decoded. This usually means a required system
+                    library is missing on your machine.<br><br>
+                    <b>To fix this locally:</b><br>
+                    &bull; Install <code>ffmpeg</code> and add it to your PATH (required for MP3 / M4A).<br>
+                    &bull; Install <code>libsndfile</code> (required for FLAC / OGG / WAV on Linux/Mac).<br>
+                    &bull; Try converting your file to a standard WAV (16-bit PCM) and re-uploading.<br><br>
+                    <i>Technical detail: {_ve}</i>
+                </div>
+            </div>""", unsafe_allow_html=True)
+            if st.button("← Clear & Try Another File", key="btn_err_reset"):
+                st.session_state.target_path = None
+                st.session_state.display_name = None
+                st.session_state.uploader_key = st.session_state.get("uploader_key", 0) + 1
+                st.rerun()
+            st.stop()
+        except Exception as _e:
+            st.error(f"Unexpected error during analysis: {_e}")
+            if st.button("← Clear & Try Another File", key="btn_err_reset2"):
+                st.session_state.target_path = None
+                st.session_state.display_name = None
+                st.session_state.uploader_key = st.session_state.get("uploader_key", 0) + 1
+                st.rerun()
+            st.stop()
 
         score = audit["authenticity_score"]
         verdict = audit["verdict"]
@@ -449,6 +481,7 @@ with col_right:
             if st.button("Reset", key="btn_reset"):
                 st.session_state.target_path = None
                 st.session_state.display_name = None
+                st.session_state.uploader_key = st.session_state.get("uploader_key", 0) + 1
                 st.rerun()
 
         # Audio Player

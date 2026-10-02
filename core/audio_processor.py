@@ -37,6 +37,19 @@ def load_audio_signal(filepath: str, target_sr: int = 22050):
         except Exception:
             pass
 
+    # Attempt 3b: Pydub fallback (handles AAC, WMA, unusual encodings via ffmpeg)
+    if y is None:
+        try:
+            from pydub import AudioSegment
+            audio_seg = AudioSegment.from_file(filepath)
+            audio_seg = audio_seg.set_channels(1).set_frame_rate(target_sr)
+            raw = np.array(audio_seg.get_array_of_samples(), dtype=np.float32)
+            max_val = float(2 ** (audio_seg.sample_width * 8 - 1))
+            y = raw / (max_val + 1e-9)
+            sr = target_sr
+        except Exception:
+            pass
+
     # Attempt 3: Standard wave module fallback (for standard PCM WAVs)
     if y is None and filepath.lower().endswith('.wav'):
         try:
@@ -71,7 +84,12 @@ def load_audio_signal(filepath: str, target_sr: int = 22050):
             pass
 
     if y is None or len(y) == 0:
-        raise ValueError(f"Unable to decode audio stream from file: {os.path.basename(filepath)}")
+        ext = os.path.splitext(filepath)[1].upper() or "unknown format"
+        raise ValueError(
+            f"Unable to decode audio stream from '{os.path.basename(filepath)}' ({ext}). "
+            f"All backends (SoundFile, Librosa, pydub, wave) failed. "
+            f"Try converting the file to WAV (16-bit PCM) before uploading."
+        )
 
     # Ensure float32 representation and remove non-finite entries
     y = np.nan_to_num(y.astype(np.float32), nan=0.0, posinf=0.0, neginf=0.0)
