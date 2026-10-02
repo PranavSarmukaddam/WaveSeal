@@ -1,10 +1,12 @@
 import os
+import base64
 import tempfile
 import numpy as np
 import pandas as pd
 import streamlit as st
 import matplotlib
 import matplotlib.pyplot as plt
+from PIL import Image
 matplotlib.use("Agg")
 
 from core.metadata_extractor import compute_file_hashes, extract_metadata
@@ -13,8 +15,22 @@ from core.tamper_detector import run_full_forensic_audit
 from core.report_generator import generate_pdf_report
 from utils.audio_generator import generate_sample_audio_files
 
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+page_icon = None
+logo_b64 = None
+
+if os.path.exists(LOGO_PATH):
+    try:
+        page_icon = Image.open(LOGO_PATH)
+        with open(LOGO_PATH, "rb") as f:
+            logo_b64 = base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        page_icon = None
+        logo_b64 = None
+
 st.set_page_config(
     page_title="WaveSeal - Audio Forensics",
+    page_icon=page_icon,
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -67,12 +83,19 @@ html, body, [class*="css"] {
     font-weight: 900;
     font-size: 13px;
     letter-spacing: 0.5px;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+.ws-logo-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
 }
 .ws-nav-title {
     color: #ffffff;
@@ -295,10 +318,15 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 """, unsafe_allow_html=True)
 
 # Top Bar
-st.markdown("""
+if logo_b64:
+    logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="ws-logo-img" alt="WaveSeal Logo" />'
+else:
+    logo_html = '<div class="ws-logo-mark">WS</div>'
+
+st.markdown(f"""
 <div class="ws-navbar">
     <div class="ws-nav-brand">
-        <div class="ws-logo-mark">WS</div>
+        {logo_html}
         <div class="ws-nav-title">WaveSeal <span class="ws-nav-sub">/ Audio Forensics & Authenticity</span></div>
     </div>
     <div class="ws-nav-tag">Production Ready</div>

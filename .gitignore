@@ -27,8 +27,9 @@ env/
 *.png
 *.jpg
 *.jpeg
-# keep samples directory tracked
+# keep samples and assets directories tracked
 !samples/**
+!assets/**
 
 # Temp / OS files
 .DS_Store
