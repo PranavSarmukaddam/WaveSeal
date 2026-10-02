@@ -81,19 +81,19 @@ html, body, [class*="css"] {
     background-color: #ffffff;
     color: #0f172a;
     font-weight: 900;
-    font-size: 13px;
+    font-size: 14px;
     letter-spacing: 0.5px;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .ws-logo-img {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
     object-fit: cover;
     display: block;
 }
