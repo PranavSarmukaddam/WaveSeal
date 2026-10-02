@@ -1,0 +1,18 @@
+# Core audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+mutagen>=1.47.0
+
+# PDF generation
+fpdf2>=2.7.0
+
+# Scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+
+# Data
+pandas>=2.0.0
+
+# Web app
+streamlit>=1.32.0

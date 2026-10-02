@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaveSeal - Audio Forensics & Authenticity Verification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="brand-title">
+                WaveSeal: Audio Forensics & Tamper Detection System
+            </div>
+            <div class="brand-subtitle">
+                Cryptographic Chain of Custody • Spectral Analysis • Discontinuity & Splice Detection
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <div class="dashboard-grid">
+            <!-- Sidebar / Control Panel -->
+            <aside>
+                <div class="card">
+                    <div class="card-title">📁 Select Audio Input File</div>
+                    
+                    <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+                        <div class="dropzone-icon">🎵</div>
+                        <div class="dropzone-text">
+                            Click to Browse Audio File<br>(.wav, .mp3)
+                        </div>
+                        <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg" style="display: none;">
+                    </div>
+
+                    <div style="text-align: center; margin: 14px 0; color: #64748b; font-size: 12px; font-weight: 600;">OR SELECT DEMO SAMPLES</div>
+
+                    <button class="btn btn-secondary" onclick="analyzeSample('tampered')">
+                        🚨 Spliced / Tampered Sample
+                    </button>
+                    <button class="btn btn-secondary" onclick="analyzeSample('authentic')">
+                        ✅ Authentic Speech Sample
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">ℹ️ System Modules</div>
+                    <ul style="font-size: 13px; color: #475569; padding-left: 18px; line-height: 1.8;">
+                        <li>MD5 & SHA-256 Hashing</li>
+                        <li>Mutagen Metadata Tag Inspection</li>
+                        <li>STFT Magnitude Spectrogram</li>
+                        <li>Amplitude & Spectral Cut Jump Detection</li>
+                        <li>Silence Gap Analysis</li>
+                        <li>PDF Report Generator</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main id="results-area" style="display: none;">
+                <!-- Analysis Verdict Banner -->
+                <div class="card">
+                    <div class="verdict-box" id="verdict-box">
+                        <div>
+                            <div style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">Authenticity Verdict</div>
+                            <div id="verdict-title" style="font-size: 22px; font-weight: 800; margin-top: 2px;">VERDICT</div>
+                            <div id="verdict-desc" style="font-size: 14px; margin-top: 4px;">Description</div>
+                        </div>
+                        <div class="score-circle" id="score-circle">
+                            <span id="score-val">0</span>%
+                        </div>
+                    </div>
+
+                    <!-- Audio Player -->
+                    <div style="margin-top: 14px;">
+                        <div style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px;">Audio Playback Controls:</div>
+                        <audio id="audio-player" controls style="width: 100%;"></audio>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <div class="card">
+                    <div class="tabs-nav">
+                        <button class="tab-btn active" onclick="switchTab('tab-metadata')">Metadata & Hashes</button>
+                        <button class="tab-btn" onclick="switchTab('tab-visuals')">Spectrogram & Waveform Plot</button>
+                        <button class="tab-btn" onclick="switchTab('tab-tamper')">Tamper Detection Results</button>
+                        <button class="tab-btn" onclick="switchTab('tab-report')">PDF Report</button>
+                    </div>
+
+                    <!-- Tab 1: Metadata -->
+                    <div id="tab-metadata" class="tab-content active">
+                        <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 8px;">Cryptographic Chain of Custody Hashes</div>
+                        <div class="meta-grid">
+                            <div class="meta-item" style="grid-column: span 2;">
+                                <div class="meta-label">MD5 Hash</div>
+                                <div class="meta-value" id="hash-md5">-</div>
+                            </div>
+                            <div class="meta-item" style="grid-column: span 2;">
+                                <div class="meta-label">SHA-256 Hash</div>
+                                <div class="meta-value" id="hash-sha256">-</div>
+                            </div>
+                        </div>
+
+                        <div style="font-weight: 700; color: #1e3a8a; margin-top: 20px; margin-bottom: 8px;">Audio File Specifications</div>
+                        <div class="meta-grid">
+                            <div class="meta-item">
+                                <div class="meta-label">Format / Codec</div>
+                                <div class="meta-value" id="meta-format">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Sample Rate</div>
+                                <div class="meta-value" id="meta-sr">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Channels</div>
+                                <div class="meta-value" id="meta-channels">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Duration</div>
+                                <div class="meta-value" id="meta-duration">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Bitrate</div>
+                                <div class="meta-value" id="meta-bitrate">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">File Size</div>
+                                <div class="meta-value" id="meta-size">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Visual Spectrogram -->
+                    <div id="tab-visuals" class="tab-content">
+                        <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 8px;">Time-Domain Waveform & STFT Magnitude Spectrogram</div>
+                        <img id="spectrogram-img" class="plot-img" src="" alt="Forensic Spectrogram">
+                    </div>
+
+                    <!-- Tab 3: Tamper Audit -->
+                    <div id="tab-tamper" class="tab-content">
+                        <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 8px;">Splice & Cut Boundaries</div>
+                        <div id="discon-table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Severity</th>
+                                        <th>Anomaly Score</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="discon-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="font-weight: 700; color: #1e3a8a; margin-top: 20px; margin-bottom: 8px;">Silence Gap Analysis</div>
+                        <div id="silence-tbody"></div>
+
+                        <div style="font-weight: 700; color: #1e3a8a; margin-top: 20px; margin-bottom: 8px;">Background Noise Floor Consistency</div>
+                        <div id="noise-details" style="font-size: 13px; color: #475569; font-family: Consolas, monospace;"></div>
+                    </div>
+
+                    <!-- Tab 4: PDF Report -->
+                    <div id="tab-report" class="tab-content">
+                        <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 8px;">Generate PDF Forensic Audit Report</div>
+                        <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
+                            Click the button below to download the generated PDF report containing metadata, hashes, and splice timestamps.
+                        </p>
+                        <a id="download-report-btn" href="#" class="btn btn-primary" style="text-decoration: none; display: inline-block; width: auto; padding: 10px 24px;">
+                            Download PDF Forensic Report
+                        </a>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Loading Placeholder -->
+            <div id="loading-area" class="card" style="display: none; text-align: center; padding: 40px;">
+                <div style="font-size: 18px; font-weight: 700; color: #1e3a8a;">Processing Audio File...</div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 6px;">Computing Hashes, STFT Spectrogram, and Tamper Anomalies</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
