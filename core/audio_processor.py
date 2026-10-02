@@ -48,9 +48,12 @@ def load_audio_signal(filepath: str, target_sr: int = 22050):
             )
             chunks = []
             for frame in container.decode(audio=0):
-                resampled = resampler.resample(frame)
-                if resampled:
-                    chunks.append(resampled.to_ndarray().flatten())
+                # resample() returns a LIST of AudioFrame objects — must iterate
+                for resampled_frame in resampler.resample(frame):
+                    chunks.append(resampled_frame.to_ndarray().flatten())
+            # Flush any remaining samples buffered in the resampler
+            for resampled_frame in resampler.resample(None):
+                chunks.append(resampled_frame.to_ndarray().flatten())
             container.close()
             if chunks:
                 y = np.concatenate(chunks).astype(np.float32)
