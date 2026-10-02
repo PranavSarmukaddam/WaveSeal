@@ -37,7 +37,28 @@ def load_audio_signal(filepath: str, target_sr: int = 22050):
         except Exception:
             pass
 
-    # Attempt 3b: Pydub fallback (handles AAC, WMA, unusual encodings via ffmpeg)
+    # Attempt 3: PyAV fallback (bundles its own ffmpeg — works on Streamlit Cloud
+    #             without needing system ffmpeg; handles M4A, MP3, AAC, etc.)
+    if y is None:
+        try:
+            import av
+            container = av.open(filepath)
+            resampler = av.AudioResampler(
+                format='fltp', layout='mono', rate=target_sr
+            )
+            chunks = []
+            for frame in container.decode(audio=0):
+                resampled = resampler.resample(frame)
+                if resampled:
+                    chunks.append(resampled.to_ndarray().flatten())
+            container.close()
+            if chunks:
+                y = np.concatenate(chunks).astype(np.float32)
+                sr = target_sr
+        except Exception:
+            pass
+
+    # Attempt 4: Pydub fallback (needs system ffmpeg; may work on some envs)
     if y is None:
         try:
             from pydub import AudioSegment
